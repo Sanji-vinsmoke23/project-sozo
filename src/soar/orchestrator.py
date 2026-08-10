@@ -14,6 +14,7 @@ DB_PATH = os.path.join(ROOT, "sozo.db")
 DEFAULT_TTL_MINUTES = 30
 ALLOWLIST_IPS = {"10.10.10.1", "127.0.0.1", "172.17.0.1"} # Docker gateway / host
 DRY_RUN_MODE = True # Safety first!
+DEMO_MODE = True
 
 def get_conn():
     return sqlite3.connect(DB_PATH)
@@ -51,7 +52,7 @@ def decide_and_act(conn, det):
     det_id, event_id, rule_id, attack_type, conf, sev, planned_level, dedup_key, ip = det
     
     # 1. Allowlist Check
-    if ip in ALLOWLIST_IPS:
+    if ip in ALLOWLIST_IPS and not DEMO_MODE:
         print(f"[SOAR] ALLOWLISTED: {ip} ({rule_id}). Logging and ignoring.")
         action_id = uuid.uuid4().hex
         conn.execute("""
