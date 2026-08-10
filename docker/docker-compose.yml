@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  victim:
+    image: vulnerables/web-dvwa
+    container_name: sozo_victim
+    ports:
+      - "8080:80"
+    networks:
+      sozo_internal:
+        ipv4_address: 10.10.10.20
+
+  attacker:
+    image: kalilinux/kali-rolling
+    container_name: sozo_attacker
+    tty: true
+    networks:
+      sozo_internal:
+        ipv4_address: 10.10.10.100
+
+networks:
+  sozo_internal:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: "10.10.10.0/24"

@@ -1,0 +1,14 @@
+BENIGN CAPTURE NOTES — 09/08/2026
+Capture method: Branch A file copy
+Log path discovered in container: 
+rithish@rithish:~/project-sozo$ docker exec sozo_victim head -n 3 /var/log/apache2/access.log
+10.10.10.1 - - [09/Aug/2026:15:31:24 +0000] "POST /login.php HTTP/1.1" 302 337 "http://localhost:8080/login.php" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
+10.10.10.1 - - [09/Aug/2026:15:31:24 +0000] "GET /index.php HTTP/1.1" 200 3038 "http://localhost:8080/login.php" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
+10.10.10.1 - - [09/Aug/2026:15:31:33 +0000] "GET /vulnerabilities/csrf/ HTTP/1.1" 200 1755 "http://localhost:8080/index.php" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
+
+Source IP as seen in logs: 10.10.10.1
+Session 1:  login, browse modules, id=1 submit, logout
+Session 2:  one wrong password, O'Brien input, browse, logout
+Session 3:  user analyst1 | login, browse, form submit, logout
+Tools used: browser only
+Attacks run: none

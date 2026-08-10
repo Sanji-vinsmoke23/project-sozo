@@ -1,0 +1,13 @@
+# Python
+venv/
+__pycache__/
+*.py[cod]
+
+# Runtime state
+legacy_v0/memory_blacklist.txt
+
+# Large datasets (source of truth: Google Drive)
+data/cicids2017/
+
+# OS
+.DS_Store
