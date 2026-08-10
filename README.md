@@ -62,6 +62,6 @@ We are currently executing an 8-week agile sprint to transition from prototype t
 ## 🤝 Team
 - **Rithish** - Project Lead, Detection, ML & SOAR Architecture
 - **Mugundhan R** - Platform Engineering, Evaluation & Infrastructure
-
+- **Aravindha** - Review and Evaluation
 ---
 *Project Sozo: Because your infrastructure deserves an immune system.*
