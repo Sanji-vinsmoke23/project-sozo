@@ -33,18 +33,19 @@ def get_db_data():
         FROM actions ORDER BY executed_ts DESC LIMIT 10
     """, conn)
     
+    # NEW: Fetch Narratives
+    narratives = pd.read_sql_query("""
+        SELECT n.narrative, d.attack_type, d.confidence, n.model
+        FROM narratives n JOIN detections d ON n.detection_id = d.detection_id
+        ORDER BY n.created_at DESC LIMIT 5
+    """, conn)
+    
     conn.close()
-    return events, alerts, memory, actions
+    return events, alerts, memory, actions, narratives
 
-events, alerts, memory, actions = get_db_data()
+events, alerts, memory, actions, narratives = get_db_data()
 
-# Top Metrics
-col1, col2, col3 = st.columns(3)
-col1.metric("Events Processed", events)
-col2.metric("Active Threats in Memory", len(memory))
-col3.metric("SOAR Actions Taken", len(actions))
-
-st.markdown("---")
+# ... (keep the top metrics the same) ...
 
 # Main Content
 left_col, right_col = st.columns(2)
@@ -63,9 +64,15 @@ with left_col:
         st.info("No actions recorded yet.")
 
 with right_col:
+    # NEW: Narratives Section
+    st.subheader("🗣️ AI Incident Summaries")
+    if len(narratives) > 0:
+        st.dataframe(narratives, use_container_width=True, hide_index=True)
+    else:
+        st.info("No narratives generated yet.")
+
     st.subheader("🚨 Live Detection Feed (Last 10)")
     if len(alerts) > 0:
-        # Color code severity for visual pop
         st.dataframe(alerts, use_container_width=True, hide_index=True)
     else:
         st.info("No attacks detected in the current window.")
