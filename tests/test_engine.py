@@ -44,3 +44,10 @@ def test_sqli_disabled_flag():
     events, _ = parse_file("data/attack_samples/attack_sample_01.log")
     dets = run(events, eng)
     assert all(d["rule_id"] != "DET-SQLI-01" for d in dets)
+
+def test_xss_detection():
+    eng = make_engine()
+    ev = parse_line('10.10.10.5 - - [10/Aug/2026:12:00:00 +0000] "GET /search/?q=%3Cscript%3Ealert(1)%3C/script%3E HTTP/1.1" 200 500 "-" "Mozilla/5.0"')
+    eng.evaluate(ev)
+    assert len(eng.detections) == 1
+    assert eng.detections[0]["rule_id"] == "DET-XSS-01"

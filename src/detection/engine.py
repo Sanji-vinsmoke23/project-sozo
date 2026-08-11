@@ -26,6 +26,12 @@ SQLI_PATTERNS = [
     (re.compile(r"(?i)['\"]\s*;\s*(drop|delete|update|insert)\b"), "stacked_query"),
 ]
 
+XSS_PATTERNS = [
+    (re.compile(r"(?i)<script"), "script_tag"),
+    (re.compile(r"(?i)on\w+\s*="), "event_handler"), # onload=, onerror=
+    (re.compile(r"(?i)javascript:"), "js_protocol"),
+]
+
 def ts_epoch(ts):
     return datetime.strptime(ts, "%Y-%m-%dT%H:%M:%SZ").timestamp()
 
@@ -34,6 +40,7 @@ class Engine:
         self.d_sqli = cfg["detection"]["sqli"]["enabled"]
         self.d_brute = cfg["detection"]["brute_force"]["enabled"]
         self.d_scan = cfg["detection"]["scanner"]["enabled"]
+        self.d_xss = cfg["detection"]["xss"]["enabled"]
 
         self.brute_count = cfg["detection"]["brute_force"]["count"]
         self.brute_window = cfg["detection"]["brute_force"]["window_seconds"]
@@ -45,6 +52,7 @@ class Engine:
         self.detections = []
 
     def evaluate(self, ev):
+        # 1. SQLi Detection
         if self.d_sqli:
             for key, value in ev["query_params"].items():
                 for pat, family in SQLI_PATTERNS:
@@ -52,9 +60,19 @@ class Engine:
                         self._add(ev, "DET-SQLI-01", "sqli", "A03", "T1190",
                                   f"query_params[{key}]", value, 0.8, "high", "L3")
                         break
+
+        # 2. XSS Detection (NEW)
+        if self.d_xss:
+            for key, value in ev["query_params"].items():
+                for pat, family in XSS_PATTERNS:
+                    if pat.search(value):
+                        self._add(ev, "DET-XSS-01", "xss", "A03", "T1059",
+                                  f"query_params[{key}]", value, 0.8, "high", "L2")
+                        break
         
         t = ts_epoch(ev["event_ts"])
         
+        # 3. Brute Force Detection
         if self.d_brute and ev["method"] == "POST" and ev["uri_path"] == "/login.php":
             self.logins[ev["source_ip"]].append(t)
             w = [x for x in self.logins[ev["source_ip"]] if t - x <= self.brute_window]
@@ -64,6 +82,7 @@ class Engine:
                           "login_rate", f"{len(w)} logins in {self.brute_window}s", 0.7, "high", "L3")
                 self.logins[ev["source_ip"]] = []
                 
+        # 4. Scanner Detection
         if self.d_scan and ev["status_code"] == 404:
             self.not404[ev["source_ip"]].append(t)
             w = [x for x in self.not404[ev["source_ip"]] if t - x <= self.scan_window]
@@ -72,7 +91,6 @@ class Engine:
                 self._add(ev, "DET-SCAN-01", "scanner_recon", "A05", "T1595",
                           "404_rate", f"{len(w)} 404s in {self.scan_window}s", 0.6, "medium", "L2")
                 self.not404[ev["source_ip"]] = []
-
     def _add(self, ev, rule, atype, owasp, mitre, field, indicator, conf, sev, level):
         self.detections.append({
             "detection_id": uuid.uuid4().hex, "event_id": ev["event_id"],
