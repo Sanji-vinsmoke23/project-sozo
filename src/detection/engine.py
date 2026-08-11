@@ -32,6 +32,16 @@ XSS_PATTERNS = [
     (re.compile(r"(?i)javascript:"), "js_protocol"),
 ]
 
+CMDI_PATTERNS = [
+    (re.compile(r"[;&|`]"), "shell_metachar"),
+    (re.compile(r"(?i)\b(cat|ls|id|whoami|ping|wget|curl)\b"), "os_command"),
+]
+
+FI_PATTERNS = [
+    (re.compile(r"\.\./"), "path_traversal"),
+    (re.compile(r"(?i)/etc/(passwd|shadow)"), "sensitive_file"),
+    (re.compile(r"(?i)(php|file|expect)://"), "wrapper_protocol"),
+]
 def ts_epoch(ts):
     return datetime.strptime(ts, "%Y-%m-%dT%H:%M:%SZ").timestamp()
 
@@ -41,7 +51,8 @@ class Engine:
         self.d_brute = cfg["detection"]["brute_force"]["enabled"]
         self.d_scan = cfg["detection"]["scanner"]["enabled"]
         self.d_xss = cfg["detection"]["xss"]["enabled"]
-
+        self.d_cmdi = cfg["detection"]["cmdi"]["enabled"]
+        self.d_fi = cfg["detection"]["fi"]["enabled"]
         self.brute_count = cfg["detection"]["brute_force"]["count"]
         self.brute_window = cfg["detection"]["brute_force"]["window_seconds"]
         self.scan_count = cfg["detection"]["scanner"]["count"]
@@ -71,7 +82,23 @@ class Engine:
                         break
         
         t = ts_epoch(ev["event_ts"])
-        
+        # 3. Command Injection (CMDi)
+        if self.d_cmdi:
+            for key, value in ev["query_params"].items():
+                for pat, family in CMDI_PATTERNS:
+                    if pat.search(value):
+                        self._add(ev, "DET-CMDI-01", "cmdi", "A03", "T1059",
+                                  f"query_params[{key}]", value, 0.8, "high", "L3")
+                        break
+
+        # 4. File Inclusion (FI) / Path Traversal
+        if self.d_fi:
+            for key, value in ev["query_params"].items():
+                for pat, family in FI_PATTERNS:
+                    if pat.search(value):
+                        self._add(ev, "DET-FI-01", "file_inclusion", "A01", "T1190",
+                                  f"query_params[{key}]", value, 0.8, "high", "L3")
+                        break        
         # 3. Brute Force Detection
         if self.d_brute and ev["method"] == "POST" and ev["uri_path"] == "/login.php":
             self.logins[ev["source_ip"]].append(t)

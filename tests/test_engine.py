@@ -51,3 +51,17 @@ def test_xss_detection():
     eng.evaluate(ev)
     assert len(eng.detections) == 1
     assert eng.detections[0]["rule_id"] == "DET-XSS-01"
+
+def test_cmdi_detection():
+    eng = make_engine()
+    # URL encoded `; cat /etc/passwd` -> %3Bcat%20/etc/passwd
+    ev = parse_line('10.10.10.5 - - [10/Aug/2026:12:00:00 +0000] "GET /ping/?ip=8.8.8.8%3Bcat%20/etc/passwd HTTP/1.1" 200 500 "-" "Mozilla/5.0"')
+    eng.evaluate(ev)
+    assert any(d["rule_id"] == "DET-CMDI-01" for d in eng.detections)
+
+def test_fi_detection():
+    eng = make_engine()
+    # URL encoded `../../etc/passwd` -> ..%2F..%2Fetc%2Fpasswd
+    ev = parse_line('10.10.10.5 - - [10/Aug/2026:12:00:00 +0000] "GET /view/?file=..%2F..%2Fetc%2Fpasswd HTTP/1.1" 200 500 "-" "Mozilla/5.0"')
+    eng.evaluate(ev)
+    assert any(d["rule_id"] == "DET-FI-01" for d in eng.detections)

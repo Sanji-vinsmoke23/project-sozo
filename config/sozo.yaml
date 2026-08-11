@@ -28,7 +28,10 @@ detection:
     enabled: true
     count: 20
     window_seconds: 60
-
+  cmdi:
+    enabled: true
+  fi:
+    enabled: true
 soar:
   allowlist:
     - "10.10.10.1"
