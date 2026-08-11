@@ -24,7 +24,7 @@ detection:
     high_window_seconds: 600
   scanner:
     enabled: true
-    count: 20
+    count: 5
     window_seconds: 60
 
 soar:

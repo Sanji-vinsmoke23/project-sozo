@@ -1,4 +1,4 @@
-"""Sozo Detection Engine v2 (R-021). Rules: DET-SQLI-01, DET-BRUTE-01, DET-SCAN-01."""
+"""Sozo Detection Engine v2 (R-021 + E1 Config Integration)."""
 import os
 import re
 import sys
@@ -10,8 +10,7 @@ from datetime import datetime
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, ROOT)
 from src.parser.parser import parse_file
-
-DB_PATH = os.path.join(ROOT, "sozo.db")
+from src.core.config import load_config, db_path
 
 SQLI_PATTERNS = [
     (re.compile(r"(?i)\bunion\b[^&]*\bselect\b"), "union_select"),
@@ -21,45 +20,52 @@ SQLI_PATTERNS = [
     (re.compile(r"(?i)['\"]\s*;\s*(drop|delete|update|insert)\b"), "stacked_query"),
 ]
 
-BRUTE_COUNT = 5
-BRUTE_WINDOW = 300
-SCAN_COUNT = 20
-SCAN_WINDOW = 60
-
-
 def ts_epoch(ts):
     return datetime.strptime(ts, "%Y-%m-%dT%H:%M:%SZ").timestamp()
 
-
 class Engine:
-    def __init__(self):
+    def __init__(self, cfg):
+        # Load settings directly from config
+        self.d_sqli = cfg["detection"]["sqli"]["enabled"]
+        self.d_brute = cfg["detection"]["brute_force"]["enabled"]
+        self.d_scan = cfg["detection"]["scanner"]["enabled"]
+
+        self.brute_count = cfg["detection"]["brute_force"]["count"]
+        self.brute_window = cfg["detection"]["brute_force"]["window_seconds"]
+        self.scan_count = cfg["detection"]["scanner"]["count"]
+        self.scan_window = cfg["detection"]["scanner"]["window_seconds"]
+
         self.logins = defaultdict(list)
         self.not404 = defaultdict(list)
         self.detections = []
 
     def evaluate(self, ev):
-        for key, value in ev["query_params"].items():
-            for pat, family in SQLI_PATTERNS:
-                if pat.search(value):
-                    self._add(ev, "DET-SQLI-01", "sqli", "A03", "T1190",
-                              f"query_params[{key}]", value, 0.8, "high", "L3")
-                    break
+        if self.d_sqli:
+            for key, value in ev["query_params"].items():
+                for pat, family in SQLI_PATTERNS:
+                    if pat.search(value):
+                        self._add(ev, "DET-SQLI-01", "sqli", "A03", "T1190",
+                                  f"query_params[{key}]", value, 0.8, "high", "L3")
+                        break
+        
         t = ts_epoch(ev["event_ts"])
-        if ev["method"] == "POST" and ev["uri_path"] == "/login.php":
+        
+        if self.d_brute and ev["method"] == "POST" and ev["uri_path"] == "/login.php":
             self.logins[ev["source_ip"]].append(t)
-            w = [x for x in self.logins[ev["source_ip"]] if t - x <= BRUTE_WINDOW]
+            w = [x for x in self.logins[ev["source_ip"]] if t - x <= self.brute_window]
             self.logins[ev["source_ip"]] = w
-            if len(w) >= BRUTE_COUNT:
+            if len(w) >= self.brute_count:
                 self._add(ev, "DET-BRUTE-01", "brute_force", "A07", "T1110",
-                          "login_rate", f"{len(w)} logins in {BRUTE_WINDOW}s", 0.7, "high", "L3")
+                          "login_rate", f"{len(w)} logins in {self.brute_window}s", 0.7, "high", "L3")
                 self.logins[ev["source_ip"]] = []
-        if ev["status_code"] == 404:
+                
+        if self.d_scan and ev["status_code"] == 404:
             self.not404[ev["source_ip"]].append(t)
-            w = [x for x in self.not404[ev["source_ip"]] if t - x <= SCAN_WINDOW]
+            w = [x for x in self.not404[ev["source_ip"]] if t - x <= self.scan_window]
             self.not404[ev["source_ip"]] = w
-            if len(w) >= SCAN_COUNT:
+            if len(w) >= self.scan_count:
                 self._add(ev, "DET-SCAN-01", "scanner_recon", "A05", "T1595",
-                          "404_rate", f"{len(w)} 404s in {SCAN_WINDOW}s", 0.6, "medium", "L2")
+                          "404_rate", f"{len(w)} 404s in {self.scan_window}s", 0.6, "medium", "L2")
                 self.not404[ev["source_ip"]] = []
 
     def _add(self, ev, rule, atype, owasp, mitre, field, indicator, conf, sev, level):
@@ -72,9 +78,8 @@ class Engine:
             "action_level": level,
         })
 
-
-def store(events, detections):
-    conn = sqlite3.connect(DB_PATH)
+def store(events, detections, db_file):
+    conn = sqlite3.connect(db_file)
     for e in events:
         conn.execute(
             "INSERT OR IGNORE INTO http_events (event_id,event_ts,source_ip,method,"
@@ -94,16 +99,17 @@ def store(events, detections):
     conn.commit()
     conn.close()
 
-
 if __name__ == "__main__":
-    target = sys.argv[1]
+    cfg = load_config()
+    target = sys.argv[1] if len(sys.argv) > 1 else "data/benign_samples/benign_sample_01.log"
+    
+    print(f"[ENGINE] Config loaded: brute={cfg['detection']['brute_force']['count']}, scan={cfg['detection']['scanner']['count']}")
     events, malformed = parse_file(target)
-    eng = Engine()
+    eng = Engine(cfg)
     for ev in events:
         eng.evaluate(ev)
-    store(events, eng.detections)
-    print(f"[ENGINE] file={target}")
-    print(f"[ENGINE] events_stored={len(events)} malformed_skipped={malformed} detections={len(eng.detections)}")
+        
+    store(events, eng.detections, db_path(cfg))
+    print(f"[ENGINE] file={target} | events={len(events)} malformed={malformed} detections={len(eng.detections)}")
     for d in eng.detections:
-        print(f"[ALERT] {d['rule_id']} {d['attack_type']} owasp={d['owasp_ref']} "
-              f"conf={d['confidence']} level={d['action_level']} :: {d['matched_indicator'][:60]}")
+        print(f"[ALERT] {d['rule_id']} {d['attack_type']} conf={d['confidence']} :: {d['matched_indicator'][:60]}")
