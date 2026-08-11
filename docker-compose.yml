@@ -1,0 +1,39 @@
+version: '3.8'
+
+networks:
+  sozo_internal:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+services:
+  sozo-api:
+    build: .
+    container_name: sozo-core-engine
+    ports:
+      - "8000:8000"
+    networks:
+      sozo_internal:
+        ipv4_address: 172.28.0.30
+    volumes:
+      - .:/app
+
+  sozo_victim:
+    image: vulnerables/web-dvwa:latest
+    container_name: sozo_victim
+    ports:
+      - "8080:80"
+    networks:
+      sozo_internal:
+        ipv4_address: 172.28.0.10
+
+  sozo_attacker:
+    image: kalilinux/kali-rolling
+    container_name: sozo_attacker
+    tty: true
+    stdin_open: true
+    command: bash
+    networks:
+      sozo_internal:
+        ipv4_address: 172.28.0.20
