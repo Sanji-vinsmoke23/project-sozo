@@ -1,0 +1,42 @@
+# Sozo Enterprise Configuration v1
+system:
+  name: "Project Sozo"
+  demo_mode: true
+  dry_run: true
+
+database:
+  path: "sozo.db"
+
+collector:
+  container: "sozo_victim"
+  log_path: "/var/log/apache2/access.log"
+  flush_interval_seconds: 2
+  flush_batch_size: 50
+
+detection:
+  sqli:
+    enabled: true
+  brute_force:
+    enabled: true
+    count: 5
+    window_seconds: 300
+    high_count: 10
+    high_window_seconds: 600
+  scanner:
+    enabled: true
+    count: 20
+    window_seconds: 60
+
+soar:
+  allowlist:
+    - "10.10.10.1"
+    - "127.0.0.1"
+    - "172.17.0.1"
+  ttl_first_minutes: 30
+  ttl_repeat_minutes: 120
+  ttl_max_auto_minutes: 1440
+  max_concurrent_blocks: 100
+
+narrator:
+  model: "phi4-mini"
+  max_evidence_chars: 80
