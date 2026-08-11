@@ -13,36 +13,35 @@ st.set_page_config(page_title="Project Sozo: Autonomous Immune SOC", layout="wid
 st.title("🧬 Project Sozo: Autonomous Immune SOC")
 st.markdown("Real-time telemetry, threat memory, and SOAR audit trail.")
 st.markdown("---")
+import requests
 
 def get_db_data():
-    conn = sqlite3.connect(DB_PATH)
-    events = pd.read_sql_query("SELECT COUNT(*) as total FROM http_events", conn).iloc[0]['total']
-    
-    alerts = pd.read_sql_query("""
-        SELECT attack_type, severity, confidence, created_at 
-        FROM detections ORDER BY created_at DESC LIMIT 10
-    """, conn)
-    
-    memory = pd.read_sql_query("""
-        SELECT indicator, status, attack_type, expiry_ts 
-        FROM threat_memory WHERE status='active' ORDER BY last_seen DESC
-    """, conn)
-    
-    actions = pd.read_sql_query("""
-        SELECT indicator, planned_action, result, executed_ts 
-        FROM actions ORDER BY executed_ts DESC LIMIT 10
-    """, conn)
-    
-    # NEW: Fetch Narratives
-    narratives = pd.read_sql_query("""
-        SELECT n.narrative, d.attack_type, d.confidence, n.model
-        FROM narratives n JOIN detections d ON n.detection_id = d.detection_id
-        ORDER BY n.created_at DESC LIMIT 5
-    """, conn)
-    
-    conn.close()
-    return events, alerts, memory, actions, narratives
-
+    try:
+        # Fetch from FastAPI instead of SQLite directly
+        status_resp = requests.get("http://localhost:8000/status").json()
+        events = status_resp.get("total_events", 0)
+        
+        alerts = requests.get("http://localhost:8000/detections").json()
+        memory = requests.get("http://localhost:8000/memory").json()
+        
+        # Actions and Narratives still need direct DB access (not exposed in API yet)
+        conn = sqlite3.connect(DB_PATH)
+        actions = pd.read_sql_query("""
+            SELECT indicator, planned_action, result, executed_ts 
+            FROM actions ORDER BY executed_ts DESC LIMIT 10
+        """, conn)
+        narratives = pd.read_sql_query("""
+            SELECT n.narrative, d.attack_type, d.confidence, n.model
+            FROM narratives n JOIN detections d ON n.detection_id = d.detection_id
+            ORDER BY n.created_at DESC LIMIT 5
+        """, conn)
+        conn.close()
+        
+        return events, pd.DataFrame(alerts), pd.DataFrame(memory), actions, narratives
+        
+    except Exception as e:
+        st.error(f"API connection failed: {e}. Is uvicorn running?")
+        return 0, pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 events, alerts, memory, actions, narratives = get_db_data()
 
 # ... (keep the top metrics the same) ...

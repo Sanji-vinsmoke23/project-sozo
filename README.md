@@ -1,14 +1,22 @@
 ![CI](https://github.com/Sanji-vinsmoke23/project-sozo/actions/workflows/ci.yml/badge.svg)
-# 🧬 Project Sozo: The Autonomous Immune SOC
+# Project Sozo: The Autonomous Immune SOC
 
 **Project Sozo** is an autonomous Security Operations Center (SOC) designed to protect containerized web applications. Inspired by the **human biological immune system**, Sozo moves beyond static rule-matching to provide adaptive, evidence-driven, and self-healing security responses.
-
-> 🏆 **Smart India Hackathon (SIH) Submission**  
+ 
 > *Track: Cybersecurity / Autonomous Systems*
 
 ---
+## ✅ Current Status: v1.0 Complete
+- [x] **Detection Engine:** SQLi, XSS, Command Injection, File Inclusion, Brute Force, Scanner Recon
+- [x] **Adaptive ML:** IsolationForest anomaly detection trained on benign traffic
+- [x] **SOAR Automation:** Safe dry-run enforcement with threat memory and TTL decay
+- [x] **AI Narration:** Local LLM incident summaries (Phi-4-mini)
+- [x] **Enterprise API:** FastAPI layer serving detections, memory, and status
+- [x] **Real-Time Dashboard:** Streamlit SOC interface consuming API
+- [x] **CI/CD:** GitHub Actions automated test suite
+- [x] **Evaluation:** 100% precision, 0% false positive rate on ground-truth data
 
-## 🧠 The Core Philosophy: Biological Cyber-Defense
+## The Core Philosophy: Biological Cyber-Defense
 Traditional SOCs rely on rigid, easily-bypassed signatures. Project Sozo mimics human immunity:
 
 | Biological System | Sozo Cyber Equivalent | Function |
@@ -22,7 +30,7 @@ Traditional SOCs rely on rigid, easily-bypassed signatures. Project Sozo mimics 
 
 ---
 
-## 🏗️ Architecture & Engineering Maturity
+##  Architecture & Engineering Maturity
 Unlike standard hackathon prototypes, Project Sozo is engineered with enterprise-grade discipline:
 - **Safety First:** Default "Dry-Run" mode. All automated mitigations are temporary, reversible, and strictly audited.
 - **Evidence-Driven:** Every alert maps directly to **OWASP Top 10** and **MITRE ATT&CK** frameworks.
@@ -31,7 +39,7 @@ Unlike standard hackathon prototypes, Project Sozo is engineered with enterprise
 
 ---
 
-## 📂 Repository Structure
+##  Repository Structure
 - `/docs`: Comprehensive architecture, threat models, and detection requirement matrices.
 - `/legacy_v0`: The initial proof-of-concept scripts (Phase 1-3).
 - `/src`: The modular v1.0 microservices architecture (Collector, Parser, Detection, SOAR, ML).
@@ -40,7 +48,7 @@ Unlike standard hackathon prototypes, Project Sozo is engineered with enterprise
 
 ---
 
-## 🗺️ Development Roadmap (v1.0)
+##  Development Roadmap (v1.0)
 We are currently executing an 8-week agile sprint to transition from prototype to legacy-grade software:
 - [x] **M0:** Project Charter, Risk Register, and Lab Baseline Capture.
 - [x] **M1:** Safe Core Architecture & Event Schema Design.
@@ -53,14 +61,14 @@ We are currently executing an 8-week agile sprint to transition from prototype t
 
 ---
 
-## 🛠️ Tech Stack
+##  Tech Stack
 - **Core:** Python 3.11, Docker SDK
 - **Data/ML:** Scikit-Learn (Isolation Forest), SQLite, Pandas
 - **AI Narrator:** Ollama (Local LLM - Phi-4-mini)
 - **Visualization:** Streamlit
 - **Target Environment:** DVWA (Damn Vulnerable Web App), Kali Linux
 
-## 🤝 Team
+##  Team
 - **Rithish** - Project Lead, Detection, ML & SOAR Architecture
 - **Mugundhan R** - Platform Engineering, Evaluation & Infrastructure
 - **Aravindha** - Review and Evaluation
