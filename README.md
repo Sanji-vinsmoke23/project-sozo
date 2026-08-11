@@ -1,3 +1,4 @@
+![CI](https://github.com/Sanji-vinsmoke23/project-sozo/actions/workflows/ci.yml/badge.svg)
 # 🧬 Project Sozo: The Autonomous Immune SOC
 
 **Project Sozo** is an autonomous Security Operations Center (SOC) designed to protect containerized web applications. Inspired by the **human biological immune system**, Sozo moves beyond static rule-matching to provide adaptive, evidence-driven, and self-healing security responses.
