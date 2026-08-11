@@ -1,16 +1,22 @@
 """Sozo Detection Engine v2 (R-021 + E1 Config Integration)."""
 import os
-import re
 import sys
+
+# CRITICAL: Project root must be added to sys.path BEFORE importing src.*
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, ROOT)
+
+import re
 import uuid
 import sqlite3
 from collections import defaultdict
 from datetime import datetime
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, ROOT)
 from src.parser.parser import parse_file
 from src.core.config import load_config, db_path
+from src.core.logger import get_logger
+
+log = get_logger("engine")
 
 SQLI_PATTERNS = [
     (re.compile(r"(?i)\bunion\b[^&]*\bselect\b"), "union_select"),
@@ -25,7 +31,6 @@ def ts_epoch(ts):
 
 class Engine:
     def __init__(self, cfg):
-        # Load settings directly from config
         self.d_sqli = cfg["detection"]["sqli"]["enabled"]
         self.d_brute = cfg["detection"]["brute_force"]["enabled"]
         self.d_scan = cfg["detection"]["scanner"]["enabled"]
@@ -103,13 +108,13 @@ if __name__ == "__main__":
     cfg = load_config()
     target = sys.argv[1] if len(sys.argv) > 1 else "data/benign_samples/benign_sample_01.log"
     
-    print(f"[ENGINE] Config loaded: brute={cfg['detection']['brute_force']['count']}, scan={cfg['detection']['scanner']['count']}")
+    log.info(f"Config loaded: brute={cfg['detection']['brute_force']['count']}, scan={cfg['detection']['scanner']['count']}")
     events, malformed = parse_file(target)
     eng = Engine(cfg)
     for ev in events:
         eng.evaluate(ev)
         
     store(events, eng.detections, db_path(cfg))
-    print(f"[ENGINE] file={target} | events={len(events)} malformed={malformed} detections={len(eng.detections)}")
+    log.info(f"Processed {target} | events={len(events)} malformed={malformed} detections={len(eng.detections)}")
     for d in eng.detections:
-        print(f"[ALERT] {d['rule_id']} {d['attack_type']} conf={d['confidence']} :: {d['matched_indicator'][:60]}")
+        log.warning(f"ALERT | {d['rule_id']} | {d['attack_type']} | conf={d['confidence']} | {d['matched_indicator'][:60]}")
