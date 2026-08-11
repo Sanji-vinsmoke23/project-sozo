@@ -1,0 +1,29 @@
+version: '3.8'
+
+networks:
+  sozo_internal:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+services:
+  sozo-api:
+    build: .
+    container_name: sozo-core-engine
+    ports:
+      - "8000:8000"
+    networks:
+      sozo_internal:
+        ipv4_address: 172.28.0.30
+    volumes:
+      - .:/app
+
+  victim-dvwa:
+    image: vulnerables/web-dvwa:latest
+    container_name: sozo-victim-dvwa
+    ports:
+      - "80:80"
+    networks:
+      sozo_internal:
+        ipv4_address: 172.28.0.10
