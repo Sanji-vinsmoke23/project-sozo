@@ -12,3 +12,5 @@ data/cicids2017/
 # OS
 .DS_Store
 *.db
+models/*.pkl
+models/*.pkl
